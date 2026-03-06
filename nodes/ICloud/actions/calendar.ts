@@ -27,7 +27,8 @@ export async function handleCalendarOperation(
 	switch (operation) {
 		case 'getCalendars': {
 			const calendars = await getCalendars(creds);
-			return this.helpers.returnJsonArray(calendars as unknown as IDataObject[]);
+			const output = calendars.map(({ url: _url, ...rest }) => rest);
+			return this.helpers.returnJsonArray(output as unknown as IDataObject[]);
 		}
 
 		case 'getEvents': {
@@ -71,7 +72,6 @@ export async function handleCalendarOperation(
 			return this.helpers.returnJsonArray([
 				{
 					success: true,
-					url: result.url,
 					etag: result.etag,
 					summary,
 					start,
@@ -105,7 +105,6 @@ export async function handleCalendarOperation(
 			return this.helpers.returnJsonArray([
 				{
 					success: true,
-					url: eventUrl,
 					updated: updateFields,
 				},
 			]);
@@ -119,7 +118,6 @@ export async function handleCalendarOperation(
 			return this.helpers.returnJsonArray([
 				{
 					success: true,
-					url: eventUrl,
 					deleted: true,
 				},
 			]);

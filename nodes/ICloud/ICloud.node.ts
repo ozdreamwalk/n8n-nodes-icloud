@@ -39,6 +39,14 @@ export class ICloud implements INodeType {
 			},
 		],
 		properties: [
+			// ─── Version Notice ────────────────────────────────────────────────────────
+			{
+				displayName: 'iCloud Node v2.0.1',
+				name: 'versionNotice',
+				type: 'notice',
+				default: '',
+			},
+
 			// ─── Resource Selector ─────────────────────────────────────────────────────
 			{
 				displayName: 'Resource',

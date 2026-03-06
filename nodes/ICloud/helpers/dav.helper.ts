@@ -15,7 +15,7 @@ export interface CalendarInfo {
 }
 
 export interface CalendarEvent {
-	url: string;
+	eventUrl: string;
 	uid: string;
 	summary: string;
 	description?: string;
@@ -27,7 +27,7 @@ export interface CalendarEvent {
 }
 
 export interface ContactInfo {
-	url: string;
+	contactUrl: string;
 	uid: string;
 	fullName?: string;
 	firstName?: string;
@@ -130,7 +130,7 @@ export async function getEvents(
 			const parsed = parseIcal(obj.data as string);
 			if (parsed) {
 				allEvents.push({
-					url: obj.url,
+					eventUrl: obj.url,
 					...parsed,
 				});
 			}
@@ -241,7 +241,7 @@ export async function getContacts(
 					if (!matchName && !matchEmail) continue;
 				}
 				allContacts.push({
-					url: obj.url,
+					contactUrl: obj.url,
 					...parsed,
 				});
 			}

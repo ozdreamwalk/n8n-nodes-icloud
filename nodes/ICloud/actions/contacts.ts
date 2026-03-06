@@ -61,7 +61,6 @@ export async function handleContactsOperation(
 			return this.helpers.returnJsonArray([
 				{
 					success: true,
-					url: result.url,
 					etag: result.etag,
 					firstName,
 					lastName,
@@ -94,7 +93,6 @@ export async function handleContactsOperation(
 			return this.helpers.returnJsonArray([
 				{
 					success: true,
-					url: contactUrl,
 					updated: updateFields,
 				},
 			]);
@@ -108,7 +106,6 @@ export async function handleContactsOperation(
 			return this.helpers.returnJsonArray([
 				{
 					success: true,
-					url: contactUrl,
 					deleted: true,
 				},
 			]);
