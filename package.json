@@ -1,0 +1,68 @@
+{
+  "name": "n8n-nodes-icloud",
+  "version": "2.0.0",
+  "description": "n8n community node for Apple iCloud — Mail, Calendar, and Contacts",
+  "keywords": [
+    "n8n-community-node-package",
+    "icloud",
+    "apple",
+    "mail",
+    "calendar",
+    "contacts",
+    "caldav",
+    "carddav",
+    "imap",
+    "smtp"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/ozdreamwalk/n8n-nodes-icloud",
+  "author": {
+    "name": "OzDreamWalk",
+    "email": "n8n-node-dev@ozdreamwalk.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ozdreamwalk/n8n-nodes-icloud.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc && npm run copy:icons",
+    "copy:icons": "copyfiles nodes/**/*.svg dist/",
+    "dev": "tsc --watch",
+    "format": "prettier nodes credentials --write",
+    "lint": "eslint nodes credentials --ext .ts",
+    "lintfix": "eslint nodes credentials --ext .ts --fix",
+    "prepublishOnly": "npm run build && npm run lint"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/ICloudCredentials.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/ICloud/ICloud.node.js"
+    ]
+  },
+  "dependencies": {
+    "imapflow": "^1.0.170",
+    "nodemailer": "^6.9.0",
+    "tsdav": "^2.1.6"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/nodemailer": "^6.4.14",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "copyfiles": "^2.4.1",
+    "eslint": "^8.0.0",
+    "n8n-workflow": "^1.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  }
+}
