@@ -54,6 +54,7 @@ export async function handleCalendarOperation(
 				description?: string;
 				location?: string;
 				allDay?: boolean;
+				timezone?: string;
 			};
 
 			const result = await createEvent(creds, {
@@ -64,6 +65,7 @@ export async function handleCalendarOperation(
 				description: additionalFields.description,
 				location: additionalFields.location,
 				allDay: additionalFields.allDay,
+				timezone: additionalFields.timezone || undefined,
 			});
 
 			return this.helpers.returnJsonArray([
@@ -87,6 +89,7 @@ export async function handleCalendarOperation(
 				description?: string;
 				location?: string;
 				allDay?: boolean;
+				timezone?: string;
 			};
 
 			if (Object.keys(updateFields).length === 0) {

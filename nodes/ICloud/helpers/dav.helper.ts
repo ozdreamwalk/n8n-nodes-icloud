@@ -23,6 +23,7 @@ export interface CalendarEvent {
 	start: string;
 	end: string;
 	allDay: boolean;
+	timezone?: string;
 }
 
 export interface ContactInfo {
@@ -44,6 +45,7 @@ export interface CreateEventOptions {
 	description?: string;
 	location?: string;
 	allDay?: boolean;
+	timezone?: string;
 }
 
 export interface CreateContactOptions {
@@ -189,6 +191,7 @@ export async function updateEvent(
 		description: updates.description ?? parsed.description,
 		location: updates.location ?? parsed.location,
 		allDay: updates.allDay ?? parsed.allDay,
+		timezone: updates.timezone ?? parsed.timezone,
 	};
 
 	await client.updateCalendarObject({
@@ -343,15 +346,23 @@ interface ParsedEvent {
 	start: string;
 	end: string;
 	allDay: boolean;
+	timezone?: string;
 }
 
 function parseIcal(icalString: string): ParsedEvent | null {
 	try {
 		const lines = icalString.replace(/\r\n\s/g, '').split(/\r\n|\n/);
+
 		const getValue = (key: string): string | undefined =>
 			lines.find((l) => l.startsWith(key + ':') || l.startsWith(key + ';'))
 				?.replace(/^[^:]+:/, '')
 				.trim();
+
+		// Extract TZID from lines like "DTSTART;TZID=Europe/Berlin:20230101T120000"
+		const getTzid = (key: string): string | undefined => {
+			const line = lines.find((l) => l.startsWith(key + ':') || l.startsWith(key + ';'));
+			return line?.match(/;TZID=([^:;]+)/)?.[1];
+		};
 
 		const uid = getValue('UID') ?? '';
 		const summary = getValue('SUMMARY') ?? '(no title)';
@@ -360,16 +371,20 @@ function parseIcal(icalString: string): ParsedEvent | null {
 
 		const dtstart = getValue('DTSTART') ?? '';
 		const dtend = getValue('DTEND') ?? '';
+		const timezone = getTzid('DTSTART');
 
 		const allDay = dtstart.length === 8; // DATE format: YYYYMMDD
 
 		const parseDate = (d: string): string => {
 			if (d.length === 8) {
+				// All-day: YYYYMMDD → YYYY-MM-DD
 				return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
 			}
-			// Remove timezone suffixes like Z or T...
-			const clean = d.replace('Z', '').replace('T', ' ');
-			return clean;
+			// DateTime: YYYYMMDDTHHmmss[Z]
+			const isUtc = d.endsWith('Z');
+			const clean = d.replace('Z', '');
+			const formatted = `${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}T${clean.slice(9, 11)}:${clean.slice(11, 13)}:${clean.slice(13, 15)}`;
+			return isUtc ? `${formatted}Z` : formatted;
 		};
 
 		return {
@@ -380,6 +395,7 @@ function parseIcal(icalString: string): ParsedEvent | null {
 			start: parseDate(dtstart),
 			end: parseDate(dtend),
 			allDay,
+			timezone,
 		};
 	} catch {
 		return null;
@@ -387,21 +403,37 @@ function parseIcal(icalString: string): ParsedEvent | null {
 }
 
 function buildIcal(uid: string, options: CreateEventOptions): string {
-	const formatDate = (dateStr: string, allDay: boolean): string => {
-		if (allDay) {
-			return dateStr.replace(/-/g, '');
-		}
-		const d = new Date(dateStr);
-		return d.toISOString().replace(/[-:]/g, '').replace('.000', '');
-	};
-
 	const allDay = options.allDay ?? false;
-	const dtstart = allDay
-		? `DTSTART;VALUE=DATE:${formatDate(options.start, true)}`
-		: `DTSTART:${formatDate(options.start, false)}`;
-	const dtend = allDay
-		? `DTEND;VALUE=DATE:${formatDate(options.end, true)}`
-		: `DTEND:${formatDate(options.end, false)}`;
+	const timezone = options.timezone;
+
+	// All-day: strip time, keep only date digits
+	const formatAllDay = (dateStr: string): string => dateStr.replace(/-/g, '').slice(0, 8);
+
+	// UTC: convert to UTC ISO and strip separators → YYYYMMDDTHHmmssZ
+	const formatUtc = (dateStr: string): string =>
+		new Date(dateStr).toISOString().replace(/[-:]/g, '').replace('.000', '');
+
+	// Local (with TZID): strip any offset suffix to keep wall-clock time → YYYYMMDDTHHmmss
+	const formatLocal = (dateStr: string): string =>
+		dateStr
+			.replace(/Z$/, '')
+			.replace(/[+-]\d{2}:\d{2}$/, '')
+			.replace(/-/g, '')
+			.replace(/:/g, '');
+
+	let dtstart: string;
+	let dtend: string;
+
+	if (allDay) {
+		dtstart = `DTSTART;VALUE=DATE:${formatAllDay(options.start)}`;
+		dtend = `DTEND;VALUE=DATE:${formatAllDay(options.end)}`;
+	} else if (timezone) {
+		dtstart = `DTSTART;TZID=${timezone}:${formatLocal(options.start)}`;
+		dtend = `DTEND;TZID=${timezone}:${formatLocal(options.end)}`;
+	} else {
+		dtstart = `DTSTART:${formatUtc(options.start)}`;
+		dtend = `DTEND:${formatUtc(options.end)}`;
+	}
 
 	const now = new Date().toISOString().replace(/[-:]/g, '').replace('.000', '');
 

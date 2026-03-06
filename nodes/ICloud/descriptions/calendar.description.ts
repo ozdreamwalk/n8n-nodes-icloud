@@ -165,6 +165,15 @@ export const calendarFields: INodeProperties[] = [
 				default: false,
 				description: 'Whether this is an all-day event (ignores time portion)',
 			},
+			{
+				displayName: 'Timezone',
+				name: 'timezone',
+				type: 'string',
+				default: '',
+				placeholder: 'Europe/Berlin',
+				description:
+					'IANA timezone for the event (e.g. Europe/Berlin, America/New_York). Leave empty to use UTC.',
+			},
 		],
 	},
 
@@ -234,6 +243,15 @@ export const calendarFields: INodeProperties[] = [
 				type: 'boolean',
 				default: false,
 				description: 'Whether to make this an all-day event',
+			},
+			{
+				displayName: 'Timezone',
+				name: 'timezone',
+				type: 'string',
+				default: '',
+				placeholder: 'Europe/Berlin',
+				description:
+					'IANA timezone for the event (e.g. Europe/Berlin, America/New_York). Leave empty to keep existing timezone.',
 			},
 		],
 	},
