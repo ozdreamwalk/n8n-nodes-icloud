@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/n8n-nodes-icloud.svg)](https://www.npmjs.com/package/n8n-nodes-icloud)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support%20the%20Project-orange?logo=buy-me-a-coffee)](https://buymeacoffee.com/ozdreamwalk)
 
 An **n8n community node** for integrating Apple iCloud into your workflows — Mail, Calendar, and Contacts, with full AI Agent tool support.
 
@@ -270,6 +271,8 @@ MIT — see [LICENSE](LICENSE)
 ## Author
 
 **OzDreamWalk** — [ozdreamwalk.com](https://ozdreamwalk.com)
+
+<p><a href="https://buymeacoffee.com/ozdreamwalk"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support%20the%20Project-orange?logo=buy-me-a-coffee" alt="Buy Me a Coffee"></a></p>
 
 ---
 
