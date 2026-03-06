@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-icloud",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "n8n community node for Apple iCloud — Mail, Calendar, and Contacts",
   "keywords": [
     "n8n-community-node-package",
