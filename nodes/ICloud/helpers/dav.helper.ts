@@ -23,8 +23,6 @@ export interface CalendarEvent {
 	start: string;
 	end: string;
 	allDay: boolean;
-	etag?: string;
-	rawIcal?: string;
 }
 
 export interface ContactInfo {
@@ -36,8 +34,6 @@ export interface ContactInfo {
 	emails: string[];
 	phones: string[];
 	notes?: string;
-	etag?: string;
-	rawVcard?: string;
 }
 
 export interface CreateEventOptions {
@@ -133,8 +129,6 @@ export async function getEvents(
 			if (parsed) {
 				allEvents.push({
 					url: obj.url,
-					etag: obj.etag,
-					rawIcal: obj.data as string,
 					...parsed,
 				});
 			}
@@ -245,8 +239,6 @@ export async function getContacts(
 				}
 				allContacts.push({
 					url: obj.url,
-					etag: obj.etag,
-					rawVcard: obj.data as string,
 					...parsed,
 				});
 			}

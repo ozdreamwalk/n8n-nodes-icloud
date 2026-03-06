@@ -50,16 +50,17 @@ export const calendarOperations: INodeProperties[] = [
 export const calendarFields: INodeProperties[] = [
 	// ─── Get Events ───────────────────────────────────────────────────────────────
 	{
-		displayName: 'Calendar URL',
+		displayName: 'Calendar',
 		name: 'calendarUrl',
-		type: 'string',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getCalendarOptionsWithAll',
+		},
 		displayOptions: {
 			show: { resource: ['calendar'], operation: ['getEvents'] },
 		},
 		default: '',
-		placeholder: 'https://p01-caldav.icloud.com/...',
-		description:
-			'URL of a specific calendar to fetch events from. Leave empty to fetch from all calendars. Use "Get Calendars" operation to obtain calendar URLs.',
+		description: 'Calendar to fetch events from. Select "All Calendars" to fetch from all.',
 	},
 	{
 		displayName: 'Start Date',
@@ -84,17 +85,18 @@ export const calendarFields: INodeProperties[] = [
 
 	// ─── Create Event ─────────────────────────────────────────────────────────────
 	{
-		displayName: 'Calendar URL',
+		displayName: 'Calendar',
 		name: 'calendarUrl',
-		type: 'string',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getCalendarOptions',
+		},
 		required: true,
 		displayOptions: {
 			show: { resource: ['calendar'], operation: ['createEvent'] },
 		},
 		default: '',
-		placeholder: 'https://p01-caldav.icloud.com/...',
-		description:
-			'URL of the calendar to create the event in. Use "Get Calendars" to get available calendar URLs.',
+		description: 'Calendar to create the event in',
 	},
 	{
 		displayName: 'Summary (Title)',

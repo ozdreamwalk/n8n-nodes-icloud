@@ -127,12 +127,15 @@ export const mailFields: INodeProperties[] = [
 	{
 		displayName: 'Mailbox',
 		name: 'mailbox',
-		type: 'string',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getMailboxOptions',
+		},
 		displayOptions: {
 			show: { resource: ['mail'], operation: ['getEmails'] },
 		},
 		default: 'INBOX',
-		description: 'Name of the mailbox/folder to read from (e.g. INBOX, Drafts, Sent)',
+		description: 'Mailbox/folder to read from',
 	},
 	{
 		displayName: 'Limit',
@@ -204,19 +207,25 @@ export const mailFields: INodeProperties[] = [
 	{
 		displayName: 'Mailbox',
 		name: 'mailbox',
-		type: 'string',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getMailboxOptions',
+		},
 		displayOptions: {
 			show: { resource: ['mail'], operation: ['getEmailById', 'deleteEmail'] },
 		},
 		default: 'INBOX',
-		description: 'Name of the mailbox containing the email',
+		description: 'Mailbox containing the email',
 	},
 
 	// ─── Move Email ───────────────────────────────────────────────────────────────
 	{
 		displayName: 'From Mailbox',
 		name: 'fromMailbox',
-		type: 'string',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getMailboxOptions',
+		},
 		required: true,
 		displayOptions: {
 			show: { resource: ['mail'], operation: ['moveEmail'] },
@@ -227,13 +236,15 @@ export const mailFields: INodeProperties[] = [
 	{
 		displayName: 'To Mailbox',
 		name: 'toMailbox',
-		type: 'string',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getMailboxOptions',
+		},
 		required: true,
 		displayOptions: {
 			show: { resource: ['mail'], operation: ['moveEmail'] },
 		},
 		default: '',
-		placeholder: 'Archive',
 		description: 'Destination mailbox to move the email to',
 	},
 ];

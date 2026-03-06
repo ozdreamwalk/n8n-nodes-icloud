@@ -1,6 +1,8 @@
 import type {
 	IExecuteFunctions,
+	ILoadOptionsFunctions,
 	INodeExecutionData,
+	INodePropertyOptions,
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
@@ -12,6 +14,8 @@ import { contactsOperations, contactsFields } from './descriptions/contacts.desc
 import { handleMailOperation } from './actions/mail';
 import { handleCalendarOperation } from './actions/calendar';
 import { handleContactsOperation } from './actions/contacts';
+import { getCalendars } from './helpers/dav.helper';
+import { listMailboxes } from './helpers/imap.helper';
 
 export class ICloud implements INodeType {
 	description: INodeTypeDescription = {
@@ -71,6 +75,43 @@ export class ICloud implements INodeType {
 			...calendarFields,
 			...contactsFields,
 		],
+	};
+
+	methods = {
+		loadOptions: {
+			async getCalendarOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const credentials = await this.getCredentials('iCloudCredentials') as {
+					appleId: string;
+					password: string;
+				};
+				const calendars = await getCalendars({ appleId: credentials.appleId, password: credentials.password });
+				return calendars.map((cal) => ({
+					name: cal.displayName,
+					value: cal.url,
+				}));
+			},
+
+			async getCalendarOptionsWithAll(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const credentials = await this.getCredentials('iCloudCredentials') as {
+					appleId: string;
+					password: string;
+				};
+				const calendars = await getCalendars({ appleId: credentials.appleId, password: credentials.password });
+				return [
+					{ name: 'All Calendars', value: '' },
+					...calendars.map((cal) => ({ name: cal.displayName, value: cal.url })),
+				];
+			},
+
+			async getMailboxOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const credentials = await this.getCredentials('iCloudCredentials') as {
+					appleId: string;
+					password: string;
+				};
+				const mailboxes = await listMailboxes({ appleId: credentials.appleId, password: credentials.password });
+				return mailboxes.map((m) => ({ name: m, value: m }));
+			},
+		},
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
