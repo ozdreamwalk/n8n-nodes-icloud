@@ -1,4 +1,4 @@
-import { createDAVClient, DAVClient } from 'tsdav';
+import { createDAVClient } from 'tsdav';
 import type { DAVCalendar, DAVCalendarObject, DAVObject } from 'tsdav';
 
 export interface DavCredentials {
