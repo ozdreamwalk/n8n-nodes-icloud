@@ -168,10 +168,12 @@ export async function updateEvent(
 	updates: Partial<Omit<CreateEventOptions, 'calendarUrl'>>,
 ): Promise<void> {
 	const client = await createCalDAVClient(credentials);
+	const calendarUrl = eventUrl.substring(0, eventUrl.lastIndexOf('/') + 1);
 
 	// Fetch existing event
 	const response = await client.fetchCalendarObjects({
-		calendar: { url: eventUrl } as DAVCalendar,
+		calendar: { url: calendarUrl } as DAVCalendar,
+		objectUrls: [eventUrl],
 	});
 
 	if (!response.length) {
@@ -184,7 +186,7 @@ export async function updateEvent(
 
 	const uid = parsed.uid;
 	const merged: CreateEventOptions = {
-		calendarUrl: eventUrl.substring(0, eventUrl.lastIndexOf('/') + 1),
+		calendarUrl: calendarUrl,
 		summary: updates.summary ?? parsed.summary,
 		start: updates.start ?? parsed.start,
 		end: updates.end ?? parsed.end,
