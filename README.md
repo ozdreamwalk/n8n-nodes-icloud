@@ -271,7 +271,7 @@ If you were using the old `n8n-nodes-apple-icloud` package (Calendar-only):
 ## Known Limitations
 
 - **No OAuth2** — Apple does not offer OAuth2 for third-party IMAP/SMTP/DAV access. App-Specific Passwords are the only supported method.
-- **Trigger is poll-based** — The iCloud Trigger polls IMAP at the n8n-configured interval (minimum ~1 minute). True push (IMAP IDLE / webhooks) is not supported by the n8n polling model.
+- **Trigger is poll-based** — The iCloud Trigger polls IMAP at the n8n-configured interval (minimum ~1 minute). IMAP IDLE (true server push) exists as an RFC standard but is architecturally incompatible with n8n's trigger model, which only supports short-lived poll callbacks or incoming webhooks — not persistent TCP connections. For near-real-time delivery, an external IMAP IDLE daemon that calls an n8n Webhook node is the recommended workaround.
 - **Calendar/Contacts trigger** — Not yet implemented. Only new-email triggering is supported.
 - **iCloud+ / Hide My Email** — Alias addresses work normally as long as they are active in your Apple ID settings.
 - **Shared calendars** — Read access to shared calendars should work; write access depends on the sharing permissions set by the calendar owner.
