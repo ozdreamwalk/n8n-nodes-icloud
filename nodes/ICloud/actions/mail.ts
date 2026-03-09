@@ -37,6 +37,21 @@ export async function handleMailOperation(
 				isHtml?: boolean;
 			};
 
+			// Resolve binary attachments
+			const attachmentsInput = this.getNodeParameter('attachments', i, { attachment: [] }) as {
+				attachment?: Array<{ binaryPropertyName: string; fileName?: string }>;
+			};
+			const resolvedAttachments: Array<{ filename: string; content: Buffer; contentType?: string }> = [];
+			for (const att of (attachmentsInput.attachment ?? [])) {
+				const binaryData = this.helpers.assertBinaryData(i, att.binaryPropertyName);
+				const buffer = await this.helpers.getBinaryDataBuffer(i, att.binaryPropertyName);
+				resolvedAttachments.push({
+					filename: att.fileName || binaryData.fileName || att.binaryPropertyName,
+					content: buffer,
+					contentType: binaryData.mimeType,
+				});
+			}
+
 			const smtpCreds = { appleId: credentials.appleId, password: credentials.password, mailAddress: credentials.mailAddress || undefined };
 			const result = await sendMail(smtpCreds, {
 				to,
@@ -45,6 +60,7 @@ export async function handleMailOperation(
 				bcc: additionalFields.bcc,
 				text: additionalFields.isHtml ? undefined : body,
 				html: additionalFields.isHtml ? body : undefined,
+				attachments: resolvedAttachments.length ? resolvedAttachments : undefined,
 			});
 
 			return this.helpers.returnJsonArray([result as unknown as IDataObject]);

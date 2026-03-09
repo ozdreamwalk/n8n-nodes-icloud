@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-icloud",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "description": "n8n community node for Apple iCloud — Mail, Calendar, and Contacts",
   "keywords": [
     "n8n-community-node-package",
@@ -44,7 +44,8 @@
       "dist/credentials/ICloudCredentials.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/ICloud/ICloud.node.js"
+      "dist/nodes/ICloud/ICloud.node.js",
+      "dist/nodes/ICloud/ICloudTrigger.node.js"
     ]
   },
   "dependencies": {

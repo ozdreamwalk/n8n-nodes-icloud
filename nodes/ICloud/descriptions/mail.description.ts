@@ -122,6 +122,40 @@ export const mailFields: INodeProperties[] = [
 			},
 		],
 	},
+	{
+		displayName: 'Attachments',
+		name: 'attachments',
+		type: 'fixedCollection',
+		typeOptions: { multipleValues: true },
+		displayOptions: {
+			show: { resource: ['mail'], operation: ['sendEmail'] },
+		},
+		placeholder: 'Add Attachment',
+		default: {},
+		options: [
+			{
+				name: 'attachment',
+				displayName: 'Attachment',
+				values: [
+					{
+						displayName: 'Binary Property',
+						name: 'binaryPropertyName',
+						type: 'string',
+						default: 'data',
+						hint: 'Name of the binary property from an upstream node (e.g. "data" from Read/Download File)',
+						description: 'The binary property in the input item that holds the file to attach',
+					},
+					{
+						displayName: 'File Name',
+						name: 'fileName',
+						type: 'string',
+						default: '',
+						description: 'Override the attachment filename. Leave empty to use the name from the binary data.',
+					},
+				],
+			},
+		],
+	},
 
 	// ─── Get Emails ───────────────────────────────────────────────────────────────
 	{

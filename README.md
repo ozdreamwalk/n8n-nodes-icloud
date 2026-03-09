@@ -12,12 +12,14 @@ An **n8n community node** for integrating Apple iCloud into your workflows — M
 
 | Resource | Operations | Protocol |
 |----------|-----------|----------|
-| **Mail** | Send, Get Emails, Get by ID, Move, Delete | SMTP / IMAP |
+| **Mail** | Send (incl. attachments), Get Emails, Get by ID, Move, Delete | SMTP / IMAP |
 | **Calendar** | List Calendars, Get Events, Create, Update, Delete | CalDAV |
 | **Contacts** | Get Contacts, Create, Update, Delete | CardDAV |
 
 - `usableAsTool: true` — Works as an AI Agent tool in n8n
+- **iCloud Trigger** — polls your IMAP mailbox for new emails (configurable interval)
 - Supports filtering emails by sender, subject, read status, date
+- Email attachments — attach binary files from upstream nodes (e.g. Read File, Download)
 - CalDAV auto-discovery (handles `p01-caldav.icloud.com`, `p02-...`, etc.)
 - Full-day event support
 - vCard 3.0 contact management
@@ -75,10 +77,15 @@ N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
 
 In n8n, add new credentials of type **"Apple iCloud Credentials"**:
 
-| Field | Description |
-|-------|-------------|
-| **Apple ID** | Your Apple ID email (e.g., `yourname@icloud.com`) |
-| **App-Specific Password** | The generated app-specific password (`xxxx-xxxx-xxxx-xxxx`) |
+| Field | Required | Description |
+|-------|----------|-------------|
+| **Apple ID** | Yes | Your Apple ID email (e.g., `yourname@icloud.com` or a Gmail/custom domain) |
+| **App-Specific Password** | Yes | The generated app-specific password (`xxxx-xxxx-xxxx-xxxx`) |
+| **iCloud Mail Address** | No | Your `@icloud.com` / `@me.com` / `@mac.com` address — **only needed for Mail (IMAP/SMTP)** if your Apple ID is not already an iCloud address |
+
+> **Why is the Mail Address field needed?**
+> iCloud's IMAP and SMTP servers (`imap.mail.me.com`, `smtp.mail.me.com`) only accept `@icloud.com`, `@me.com`, or `@mac.com` as the username. If your Apple ID is a Gmail or custom domain address, IMAP/SMTP authentication will fail with "Command failed" — even though Calendar and Contacts work fine (they use any Apple ID via CalDAV/CardDAV).
+> **Solution:** Enter your iCloud mail address in the optional field. Calendar and Contacts are unaffected.
 
 ---
 
@@ -97,6 +104,16 @@ Sends an email via iCloud Mail SMTP (`smtp.mail.me.com:587`, STARTTLS).
 | CC | string | No | Carbon copy recipient(s) |
 | BCC | string | No | Blind carbon copy |
 | Send as HTML | boolean | No | Treat body as HTML |
+| Attachments | fixedCollection | No | One or more binary files to attach (see below) |
+
+**Attaching files:** Connect an upstream node that outputs binary data (e.g. *Read/Write Files from Disk*, *HTTP Request*, *Google Drive*). In the **Attachments** section, set **Binary Property** to the name of the binary field (default: `data`). Multiple attachments are supported.
+
+```
+[Read File] ──→ [iCloud: Send Email]
+                  Attachments:
+                    Binary Property: data      ← matches output of Read File node
+                    File Name:       (optional override)
+```
 
 #### Get Emails
 Retrieves emails from an IMAP mailbox (`imap.mail.me.com:993`, SSL).
@@ -181,6 +198,29 @@ Deletes a contact. Requires **Contact UID**.
 
 ---
 
+---
+
+## iCloud Trigger (New Emails)
+
+The **iCloud Trigger** node polls your IMAP mailbox at a configurable interval and fires whenever new emails arrive.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| Mailbox | string | INBOX | Folder to watch (e.g. `INBOX`, `Sent Messages`, `Junk`) |
+| From | string | — | Only trigger for emails from this sender |
+| Subject Contains | string | — | Only trigger when subject contains this text |
+
+**How it works:**
+- On first activation, the current highest IMAP UID is recorded — no flood of old emails
+- On each poll, only emails with a UID higher than the last seen are returned
+- On **manual test run**, the most recent email is returned so you can see the data shape
+
+**Output fields:** `uid`, `messageId`, `from`, `to`, `cc`, `subject`, `date`, `flags`, `size`
+
+> **Tip:** Use *Get Email by ID* after the trigger to fetch the full email body (the trigger returns envelope data only for efficiency).
+
+---
+
 ## AI Agent Usage
 
 This node has `usableAsTool: true`, so it works directly as a tool in n8n AI Agent workflows.
@@ -226,8 +266,8 @@ If you were using the old `n8n-nodes-apple-icloud` package (Calendar-only):
 ## Known Limitations
 
 - **No OAuth2** — Apple does not offer OAuth2 for third-party IMAP/SMTP/DAV access. App-Specific Passwords are the only supported method.
-- **Attachments** — Sending attachments is not yet supported in v2.0.0.
-- **Push notifications** — The node is pull-based only; there is no trigger/webhook for incoming mail or calendar changes.
+- **Trigger is poll-based** — The iCloud Trigger polls IMAP at the n8n-configured interval (minimum ~1 minute). True push (IMAP IDLE / webhooks) is not supported by the n8n polling model.
+- **Calendar/Contacts trigger** — Not yet implemented. Only new-email triggering is supported in v2.0.7.
 - **iCloud+ / Hide My Email** — Alias addresses work normally as long as they are active in your Apple ID settings.
 - **Shared calendars** — Read access to shared calendars should work; write access depends on the sharing permissions set by the calendar owner.
 

@@ -2,6 +2,19 @@
 
 All notable changes to `n8n-nodes-icloud` will be documented here.
 
+## [2.0.7] - 2026-03-09
+
+### Added
+
+- **Email attachments** — `Send Email` now supports attaching binary files from upstream nodes (Read File, HTTP Request, Google Drive, etc.). Add one or more attachments via the new **Attachments** fixed-collection field; each item references a binary property name and an optional filename override.
+- **iCloud Trigger node** — New polling trigger (`ICloudTrigger`) fires when new emails arrive in an IMAP mailbox. Uses UID-based deduplication (no duplicate triggers on polling overlap). Supports sender and subject filters. On first activation the current state is recorded silently; manual test runs return the most recent email for preview.
+
+### Changed
+
+- **Known Limitations updated** — Attachments and push-notification entries replaced with accurate current state.
+
+---
+
 ## [2.0.6] - 2026-03-09
 
 ### Added
