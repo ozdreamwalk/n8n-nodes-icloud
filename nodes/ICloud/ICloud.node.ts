@@ -41,7 +41,7 @@ export class ICloud implements INodeType {
 		properties: [
 			// ─── Version Notice ────────────────────────────────────────────────────────
 			{
-				displayName: 'iCloud Node v2.0.7',
+				displayName: 'iCloud Node v2.0.8',
 				name: 'versionNotice',
 				type: 'notice',
 				default: '',

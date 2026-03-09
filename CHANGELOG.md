@@ -2,6 +2,19 @@
 
 All notable changes to `n8n-nodes-icloud` will be documented here.
 
+## [2.0.8] - 2026-03-09
+
+### Added
+
+- **iCloud Trigger — Extended Filters**: Four new filter options in the Trigger node:
+  - **Only Unread** — trigger only for emails not yet read in any mail client (was backend-supported but missing from UI)
+  - **To Address Contains** — IMAP `TO` search criterion; trigger only for emails addressed to a specific recipient
+  - **Has Attachments** — client-side post-filter using the already-fetched `bodyStructure`; trigger only for emails with at least one attachment
+  - **Initial Lookback (Hours)** — on first activation, return emails from the last N hours instead of silently initializing (0 = silent start, preserving previous behaviour as default)
+- **`GetEmailsOptions`**: Added `filterTo` and `hasAttachments` fields — both are now also available when using *Get Emails* from the regular iCloud node.
+
+---
+
 ## [2.0.7] - 2026-03-09
 
 ### Added

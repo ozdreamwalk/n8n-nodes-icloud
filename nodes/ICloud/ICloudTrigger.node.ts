@@ -39,6 +39,14 @@ export class ICloudTrigger implements INodeType {
 					'Mailbox to watch for new emails. Common iCloud names: INBOX, "Sent Messages", Drafts, "Deleted Messages", Junk.',
 			},
 			{
+				displayName: 'Initial Lookback (Hours)',
+				name: 'initialLookbackHours',
+				type: 'number',
+				default: 0,
+				description:
+					'On first activation, return emails from the last N hours. 0 = silent start (no old emails returned, just initialize state).',
+			},
+			{
 				displayName: 'Filters',
 				name: 'filters',
 				type: 'collection',
@@ -53,11 +61,32 @@ export class ICloudTrigger implements INodeType {
 						description: 'Only trigger for emails from this sender address or name',
 					},
 					{
+						displayName: 'Has Attachments',
+						name: 'hasAttachments',
+						type: 'boolean',
+						default: false,
+						description: 'Whether to trigger only for emails that have at least one attachment',
+					},
+					{
+						displayName: 'Only Unread',
+						name: 'onlyUnread',
+						type: 'boolean',
+						default: false,
+						description: 'Whether to trigger only for emails not yet read in any mail client',
+					},
+					{
 						displayName: 'Subject Contains',
 						name: 'filterSubject',
 						type: 'string',
 						default: '',
 						description: 'Only trigger when the subject contains this text',
+					},
+					{
+						displayName: 'To Address Contains',
+						name: 'filterTo',
+						type: 'string',
+						default: '',
+						description: 'Only trigger for emails addressed to this recipient',
 					},
 				],
 			},
@@ -78,9 +107,13 @@ export class ICloudTrigger implements INodeType {
 		};
 
 		const mailbox = this.getNodeParameter('mailbox', 'INBOX') as string;
+		const initialLookbackHours = this.getNodeParameter('initialLookbackHours', 0) as number;
 		const filters = this.getNodeParameter('filters', {}) as {
 			filterFrom?: string;
+			filterTo?: string;
 			filterSubject?: string;
+			onlyUnread?: boolean;
+			hasAttachments?: boolean;
 		};
 
 		const staticData = this.getWorkflowStaticData('node');
@@ -91,7 +124,10 @@ export class ICloudTrigger implements INodeType {
 			mailbox,
 			limit: 100,
 			filterFrom: filters.filterFrom,
+			filterTo: filters.filterTo,
 			filterSubject: filters.filterSubject,
+			onlyUnread: filters.onlyUnread,
+			hasAttachments: filters.hasAttachments,
 		});
 
 		if (!emails.length) {
@@ -111,6 +147,16 @@ export class ICloudTrigger implements INodeType {
 				const sample = emails[0];
 				return [this.helpers.returnJsonArray([sample as unknown as IDataObject])];
 			}
+
+			// Lookback: return emails from the last N hours on first activation
+			if (initialLookbackHours > 0) {
+				const since = new Date(Date.now() - initialLookbackHours * 3600 * 1000).toISOString();
+				const lookbackEmails = emails.filter((e) => e.date >= since);
+				if (lookbackEmails.length) {
+					return [this.helpers.returnJsonArray(lookbackEmails as unknown as IDataObject[])];
+				}
+			}
+
 			return null;
 		}
 

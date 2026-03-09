@@ -207,13 +207,18 @@ The **iCloud Trigger** node polls your IMAP mailbox at a configurable interval a
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | Mailbox | string | INBOX | Folder to watch (e.g. `INBOX`, `Sent Messages`, `Junk`) |
+| Initial Lookback (Hours) | number | 0 | On first activation, return emails from the last N hours. 0 = silent start (no old emails). |
 | From | string | — | Only trigger for emails from this sender |
+| To Address Contains | string | — | Only trigger for emails addressed to this recipient |
 | Subject Contains | string | — | Only trigger when subject contains this text |
+| Only Unread | boolean | false | Only trigger for emails not yet read in any mail client |
+| Has Attachments | boolean | false | Only trigger for emails with at least one attachment |
 
 **How it works:**
-- On first activation, the current highest IMAP UID is recorded — no flood of old emails
+- On first activation, the current highest IMAP UID is recorded — no flood of old emails (unless *Initial Lookback* > 0)
 - On each poll, only emails with a UID higher than the last seen are returned
 - On **manual test run**, the most recent email is returned so you can see the data shape
+- All filters are AND-combined (every active filter must match)
 
 **Output fields:** `uid`, `messageId`, `from`, `to`, `cc`, `subject`, `date`, `flags`, `size`
 
@@ -267,7 +272,7 @@ If you were using the old `n8n-nodes-apple-icloud` package (Calendar-only):
 
 - **No OAuth2** — Apple does not offer OAuth2 for third-party IMAP/SMTP/DAV access. App-Specific Passwords are the only supported method.
 - **Trigger is poll-based** — The iCloud Trigger polls IMAP at the n8n-configured interval (minimum ~1 minute). True push (IMAP IDLE / webhooks) is not supported by the n8n polling model.
-- **Calendar/Contacts trigger** — Not yet implemented. Only new-email triggering is supported in v2.0.7.
+- **Calendar/Contacts trigger** — Not yet implemented. Only new-email triggering is supported.
 - **iCloud+ / Hide My Email** — Alias addresses work normally as long as they are active in your Apple ID settings.
 - **Shared calendars** — Read access to shared calendars should work; write access depends on the sharing permissions set by the calendar owner.
 

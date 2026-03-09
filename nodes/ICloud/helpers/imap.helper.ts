@@ -24,9 +24,18 @@ export interface GetEmailsOptions {
 	mailbox?: string;
 	limit?: number;
 	filterFrom?: string;
+	filterTo?: string;
 	filterSubject?: string;
 	onlyUnread?: boolean;
 	since?: string;
+	hasAttachments?: boolean;
+}
+
+function messageHasAttachment(structure: unknown): boolean {
+	if (!structure || typeof structure !== 'object') return false;
+	const s = structure as { disposition?: string; childNodes?: unknown[] };
+	if (s.disposition === 'attachment') return true;
+	return (s.childNodes ?? []).some(messageHasAttachment);
 }
 
 const ICLOUD_IMAP_HOST = 'imap.mail.me.com';
@@ -53,9 +62,11 @@ export async function getEmails(
 		mailbox = 'INBOX',
 		limit = 10,
 		filterFrom,
+		filterTo,
 		filterSubject,
 		onlyUnread = false,
 		since,
+		hasAttachments = false,
 	} = options;
 
 	const client = createImapClient(credentials);
@@ -77,6 +88,9 @@ export async function getEmails(
 		if (filterFrom) {
 			searchCriteria['from'] = filterFrom;
 		}
+		if (filterTo) {
+			searchCriteria['to'] = filterTo;
+		}
 		if (filterSubject) {
 			searchCriteria['subject'] = filterSubject;
 		}
@@ -96,6 +110,7 @@ export async function getEmails(
 		const selectedUids = uids.slice(-limit).reverse();
 
 		const messages: EmailMessage[] = [];
+		const rawStructures: unknown[] = [];
 
 		// imapflow fetch expects number[] or a SequenceString like "1:*"
 		const fetchTarget: number[] | string = selectedUids.length > 0 ? selectedUids : '1:*';
@@ -125,6 +140,11 @@ export async function getEmails(
 				flags: [...(message.flags ?? [])],
 				size: message.size,
 			});
+			rawStructures.push(message.bodyStructure);
+		}
+
+		if (hasAttachments) {
+			return messages.filter((_, idx) => messageHasAttachment(rawStructures[idx]));
 		}
 
 		return messages;
