@@ -2,6 +2,24 @@
 
 All notable changes to `n8n-nodes-icloud` will be documented here.
 
+## [2.0.6] - 2026-03-09
+
+### Added
+
+- **iCloud Mail Address credential field** (optional) — Users whose Apple ID is not an `@icloud.com` address (e.g. Gmail or custom domain) can now enter their `@icloud.com` / `@me.com` / `@mac.com` mail address separately. IMAP and SMTP use this address for authentication and as the `from` address when sending. Calendar and Contacts are unaffected (still use Apple ID). Falls back to Apple ID if left empty (fully backwards-compatible).
+
+## [2.0.3] - 2026-03-06
+
+### Fixed
+
+- **vCard item-prefix parsing** — iCloud writes `item1.EMAIL`, `item2.TEL`, `item1.ADR` instead of plain `EMAIL`/`TEL`/`ADR`. Contacts now correctly return `emails` and `phones` arrays (previously always empty for iCloud contacts).
+- **TRANSP default (RFC 5545 §3.8.2.7)** — Timed events without an explicit `TRANSP` field now correctly return `availability: "busy"` instead of `undefined`. All-day events remain `undefined`.
+- **createEvent validation** — End date/time before or equal to start now throws `Error: End date/time must be after start date/time`.
+- **createEvent response** — Now returns `uid` and `url` in addition to `etag`, `summary`, `start`, `end`.
+- **updateEvent / deleteEvent** — No longer require the full event URL. Now accept **Calendar** (dropdown from `Get Calendars`) + **Event UID** (from `Get Events` or `Create Event`). Internal helper tries direct URL `{calendarUrl}{uid}.ics` first, falls back to full-calendar scan.
+- **updateContact / deleteContact** — No longer require the full contact URL. Now accept **Contact UID** (from `Get Contacts` or `Create Contact`). Internal helper scans all address books.
+- **Mail Mailbox field** — Changed from `loadOptionsMethod: getMailboxOptions` (triggered IMAP connection on form load, causing "Command failed") to a free `string` field with default `INBOX` and hint for common mailbox names.
+
 ## [2.0.0] - 2026-03-06
 
 ### Added

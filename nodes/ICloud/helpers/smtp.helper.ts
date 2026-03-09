@@ -4,6 +4,7 @@ import type { Transporter } from 'nodemailer';
 export interface SmtpCredentials {
 	appleId: string;
 	password: string;
+	mailAddress?: string;
 }
 
 export interface SendMailOptions {
@@ -37,7 +38,7 @@ export function createSmtpTransporter(credentials: SmtpCredentials): Transporter
 		secure: false, // STARTTLS
 		requireTLS: true,
 		auth: {
-			user: credentials.appleId,
+			user: credentials.mailAddress || credentials.appleId,
 			pass: credentials.password,
 		},
 		tls: {
@@ -54,7 +55,7 @@ export async function sendMail(
 
 	try {
 		const info = await transporter.sendMail({
-			from: credentials.appleId,
+			from: credentials.mailAddress || credentials.appleId,
 			to: options.to,
 			cc: options.cc,
 			bcc: options.bcc,

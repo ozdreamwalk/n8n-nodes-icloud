@@ -124,19 +124,18 @@ export const contactsFields: INodeProperties[] = [
 		],
 	},
 
-	// ─── Update Contact ───────────────────────────────────────────────────────────
+	// ─── Update / Delete Contact ──────────────────────────────────────────────────
 	{
-		displayName: 'Contact URL',
-		name: 'contactUrl',
+		displayName: 'Contact UID',
+		name: 'uid',
 		type: 'string',
 		required: true,
 		displayOptions: {
 			show: { resource: ['contacts'], operation: ['updateContact', 'deleteContact'] },
 		},
 		default: '',
-		placeholder: 'https://contacts.icloud.com/.../uuid.vcf',
-		description:
-			'Full URL of the contact to update or delete. Returned by "Get Contacts" or "Create Contact" operations.',
+		placeholder: 'abc12345-def6-...',
+		description: 'UID of the contact to update or delete. Returned as the "uid" field by "Get Contacts" or "Create Contact".',
 	},
 	{
 		displayName: 'Fields to Update',

@@ -128,14 +128,12 @@ export const mailFields: INodeProperties[] = [
 		displayName: 'Mailbox',
 		name: 'mailbox',
 		type: 'options',
-		typeOptions: {
-			loadOptionsMethod: 'getMailboxOptions',
-		},
+		typeOptions: { loadOptionsMethod: 'getMailboxOptions' },
 		displayOptions: {
 			show: { resource: ['mail'], operation: ['getEmails'] },
 		},
 		default: 'INBOX',
-		description: 'Mailbox/folder to read from',
+		description: 'Mailbox to read from. Common iCloud names: INBOX, "Sent Messages", Drafts, "Deleted Messages", Junk.',
 	},
 	{
 		displayName: 'Limit',
@@ -208,14 +206,12 @@ export const mailFields: INodeProperties[] = [
 		displayName: 'Mailbox',
 		name: 'mailbox',
 		type: 'options',
-		typeOptions: {
-			loadOptionsMethod: 'getMailboxOptions',
-		},
+		typeOptions: { loadOptionsMethod: 'getMailboxOptions' },
 		displayOptions: {
 			show: { resource: ['mail'], operation: ['getEmailById', 'deleteEmail'] },
 		},
 		default: 'INBOX',
-		description: 'Mailbox containing the email',
+		description: 'Mailbox containing the email.',
 	},
 
 	// ─── Move Email ───────────────────────────────────────────────────────────────
@@ -223,28 +219,24 @@ export const mailFields: INodeProperties[] = [
 		displayName: 'From Mailbox',
 		name: 'fromMailbox',
 		type: 'options',
-		typeOptions: {
-			loadOptionsMethod: 'getMailboxOptions',
-		},
+		typeOptions: { loadOptionsMethod: 'getMailboxOptions' },
 		required: true,
 		displayOptions: {
 			show: { resource: ['mail'], operation: ['moveEmail'] },
 		},
 		default: 'INBOX',
-		description: 'Source mailbox containing the email to move',
+		description: 'Source mailbox containing the email to move.',
 	},
 	{
 		displayName: 'To Mailbox',
 		name: 'toMailbox',
 		type: 'options',
-		typeOptions: {
-			loadOptionsMethod: 'getMailboxOptions',
-		},
+		typeOptions: { loadOptionsMethod: 'getMailboxOptions' },
 		required: true,
 		displayOptions: {
 			show: { resource: ['mail'], operation: ['moveEmail'] },
 		},
 		default: '',
-		description: 'Destination mailbox to move the email to',
+		description: 'Destination mailbox to move the email to.',
 	},
 ];

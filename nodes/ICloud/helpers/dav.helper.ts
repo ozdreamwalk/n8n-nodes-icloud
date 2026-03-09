@@ -8,14 +8,13 @@ export interface DavCredentials {
 
 export interface CalendarInfo {
 	url: string;
+	calendarId: string;
 	displayName: string;
 	description?: string;
-	ctag?: string;
 	color?: string;
 }
 
 export interface CalendarEvent {
-	eventUrl: string;
 	uid: string;
 	summary: string;
 	description?: string;
@@ -24,10 +23,11 @@ export interface CalendarEvent {
 	end: string;
 	allDay: boolean;
 	timezone?: string;
+	status?: string;
+	availability?: 'free' | 'busy';
 }
 
 export interface ContactInfo {
-	contactUrl: string;
 	uid: string;
 	fullName?: string;
 	firstName?: string;
@@ -35,6 +35,10 @@ export interface ContactInfo {
 	emails: string[];
 	phones: string[];
 	notes?: string;
+	org?: string;
+	title?: string;
+	birthday?: string;
+	address?: string;
 }
 
 export interface CreateEventOptions {
@@ -94,13 +98,17 @@ export async function getCalendars(credentials: DavCredentials): Promise<Calenda
 	const client = await createCalDAVClient(credentials);
 	const calendars: DAVCalendar[] = await client.fetchCalendars();
 
-	return calendars.map((cal) => ({
-		url: cal.url,
-		displayName: (cal.displayName as string) ?? 'Unnamed Calendar',
-		description: cal.description as string | undefined,
-		ctag: cal.ctag as string | undefined,
-		color: cal.calendarColor as string | undefined,
-	}));
+	return calendars.map((cal) => {
+		const segments = cal.url.replace(/\/$/, '').split('/');
+		const calendarId = segments[segments.length - 1] || cal.url;
+		return {
+			url: cal.url,
+			calendarId,
+			displayName: (cal.displayName as string) ?? 'Unnamed Calendar',
+			description: cal.description as string | undefined,
+			color: cal.calendarColor as string | undefined,
+		};
+	});
 }
 
 export async function getEvents(
@@ -129,10 +137,7 @@ export async function getEvents(
 		for (const obj of objects) {
 			const parsed = parseIcal(obj.data as string);
 			if (parsed) {
-				allEvents.push({
-					eventUrl: obj.url,
-					...parsed,
-				});
+				allEvents.push(parsed);
 			}
 		}
 	}
@@ -143,7 +148,11 @@ export async function getEvents(
 export async function createEvent(
 	credentials: DavCredentials,
 	options: CreateEventOptions,
-): Promise<{ url: string; etag: string }> {
+): Promise<{ url: string; etag: string; uid: string }> {
+	if (new Date(options.end) <= new Date(options.start)) {
+		throw new Error('End date/time must be after start date/time');
+	}
+
 	const client = await createCalDAVClient(credentials);
 
 	const uid = generateUid();
@@ -159,32 +168,43 @@ export async function createEvent(
 	return {
 		url: (result?.url as string) ?? `${options.calendarUrl}${uid}.ics`,
 		etag: (result?.etag as string) ?? '',
+		uid,
 	};
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveEventUrl(client: any, calendarUrl: string, uid: string): Promise<{ url: string; data: string; etag: string }> {
+	const directUrl = `${calendarUrl}${uid}.ics`;
+	const response = await client.fetchCalendarObjects({
+		calendar: { url: calendarUrl } as DAVCalendar,
+		objectUrls: [directUrl],
+	});
+	if (response.length && response[0].data) return response[0] as { url: string; data: string; etag: string };
+
+	// Fallback: full scan by UID
+	const all: DAVCalendarObject[] = await client.fetchCalendarObjects({ calendar: { url: calendarUrl } as DAVCalendar });
+	const match = all.find((o) => {
+		const parsed = parseIcal(o.data as string);
+		return parsed?.uid === uid;
+	});
+	if (!match) throw new Error(`Event not found: UID ${uid}`);
+	return match as unknown as { url: string; data: string; etag: string };
 }
 
 export async function updateEvent(
 	credentials: DavCredentials,
-	eventUrl: string,
+	calendarUrl: string,
+	uid: string,
 	updates: Partial<Omit<CreateEventOptions, 'calendarUrl'>>,
 ): Promise<void> {
 	const client = await createCalDAVClient(credentials);
 
-	// Fetch existing event
-	const response = await client.fetchCalendarObjects({
-		calendar: { url: eventUrl } as DAVCalendar,
-	});
-
-	if (!response.length) {
-		throw new Error(`Event not found: ${eventUrl}`);
-	}
-
-	const existing = response[0];
-	const parsed = parseIcal(existing.data as string);
+	const existing = await resolveEventUrl(client, calendarUrl, uid);
+	const parsed = parseIcal(existing.data);
 	if (!parsed) throw new Error('Could not parse existing event');
 
-	const uid = parsed.uid;
 	const merged: CreateEventOptions = {
-		calendarUrl: eventUrl.substring(0, eventUrl.lastIndexOf('/') + 1),
+		calendarUrl,
 		summary: updates.summary ?? parsed.summary,
 		start: updates.start ?? parsed.start,
 		end: updates.end ?? parsed.end,
@@ -196,7 +216,7 @@ export async function updateEvent(
 
 	await client.updateCalendarObject({
 		calendarObject: {
-			url: eventUrl,
+			url: existing.url,
 			data: buildIcal(uid, merged),
 			etag: existing.etag,
 		},
@@ -205,12 +225,14 @@ export async function updateEvent(
 
 export async function deleteEvent(
 	credentials: DavCredentials,
-	eventUrl: string,
+	calendarUrl: string,
+	uid: string,
 ): Promise<void> {
 	const client = await createCalDAVClient(credentials);
 
+	const existing = await resolveEventUrl(client, calendarUrl, uid);
 	await client.deleteCalendarObject({
-		calendarObject: { url: eventUrl },
+		calendarObject: { url: existing.url, etag: existing.etag },
 	});
 }
 
@@ -240,10 +262,7 @@ export async function getContacts(
 					const matchEmail = parsed.emails.some((e) => e.toLowerCase().includes(q));
 					if (!matchName && !matchEmail) continue;
 				}
-				allContacts.push({
-					contactUrl: obj.url,
-					...parsed,
-				});
+				allContacts.push(parsed);
 			}
 		}
 	}
@@ -283,32 +302,45 @@ export async function createContact(
 	};
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveContactUrl(client: any, uid: string): Promise<{ url: string; data: string; etag: string; addressBookUrl: string }> {
+	const addressBooks = await client.fetchAddressBooks();
+
+	for (const book of addressBooks) {
+		// Try direct URL first
+		const directUrl = `${book.url as string}${uid}.vcf`;
+		const direct: DAVObject[] = await client.fetchVCards({ addressBook: book, objectUrls: [directUrl] }).catch(() => []);
+		if (direct.length && direct[0].data) {
+			return { url: direct[0].url as string, data: direct[0].data as string, etag: direct[0].etag as string, addressBookUrl: book.url as string };
+		}
+
+		// Fallback: full scan by UID
+		const all: DAVObject[] = await client.fetchVCards({ addressBook: book });
+		const match = all.find((o) => {
+			const parsed = parseVcard(o.data as string);
+			return parsed?.uid === uid;
+		});
+		if (match) {
+			return { url: match.url as string, data: match.data as string, etag: match.etag as string, addressBookUrl: book.url as string };
+		}
+	}
+
+	throw new Error(`Contact not found: UID ${uid}`);
+}
+
 export async function updateContact(
 	credentials: DavCredentials,
-	contactUrl: string,
+	uid: string,
 	updates: Partial<Omit<CreateContactOptions, 'addressBookUrl'>>,
 ): Promise<void> {
 	const client = await createCardDAVClient(credentials);
-	const addressBooks = await client.fetchAddressBooks();
 
-	let existing: DAVObject | undefined;
-
-	for (const book of addressBooks) {
-		const objects = await client.fetchVCards({ addressBook: book });
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		existing = objects.find((o: any) => o.url === contactUrl);
-		if (existing) break;
-	}
-
-	if (!existing) {
-		throw new Error(`Contact not found: ${contactUrl}`);
-	}
-
-	const parsed = parseVcard(existing.data as string);
+	const existing = await resolveContactUrl(client, uid);
+	const parsed = parseVcard(existing.data);
 	if (!parsed) throw new Error('Could not parse existing contact');
 
 	const merged: CreateContactOptions = {
-		addressBookUrl: contactUrl.substring(0, contactUrl.lastIndexOf('/') + 1),
+		addressBookUrl: existing.addressBookUrl,
 		firstName: updates.firstName ?? parsed.firstName,
 		lastName: updates.lastName ?? parsed.lastName,
 		email: updates.email ?? parsed.emails[0],
@@ -318,8 +350,8 @@ export async function updateContact(
 
 	await client.updateVCard({
 		vCard: {
-			url: contactUrl,
-			data: buildVcard(parsed.uid, merged),
+			url: existing.url,
+			data: buildVcard(uid, merged),
 			etag: existing.etag,
 		},
 	});
@@ -327,12 +359,13 @@ export async function updateContact(
 
 export async function deleteContact(
 	credentials: DavCredentials,
-	contactUrl: string,
+	uid: string,
 ): Promise<void> {
 	const client = await createCardDAVClient(credentials);
 
+	const existing = await resolveContactUrl(client, uid);
 	await client.deleteVCard({
-		vCard: { url: contactUrl },
+		vCard: { url: existing.url, etag: existing.etag },
 	});
 }
 
@@ -347,6 +380,8 @@ interface ParsedEvent {
 	end: string;
 	allDay: boolean;
 	timezone?: string;
+	status?: string;
+	availability?: 'free' | 'busy';
 }
 
 function parseIcal(icalString: string): ParsedEvent | null {
@@ -368,6 +403,8 @@ function parseIcal(icalString: string): ParsedEvent | null {
 		const summary = getValue('SUMMARY') ?? '(no title)';
 		const description = getValue('DESCRIPTION');
 		const location = getValue('LOCATION');
+		const statusRaw = getValue('STATUS');
+		const transpRaw = getValue('TRANSP');
 
 		const dtstart = getValue('DTSTART') ?? '';
 		const dtend = getValue('DTEND') ?? '';
@@ -396,6 +433,9 @@ function parseIcal(icalString: string): ParsedEvent | null {
 			end: parseDate(dtend),
 			allDay,
 			timezone,
+			status: statusRaw,
+			// RFC 5545 §3.8.2.7: TRANSP default is OPAQUE (busy). All-day events get no default.
+			availability: transpRaw === 'TRANSPARENT' ? 'free' : allDay ? undefined : 'busy',
 		};
 	} catch {
 		return null;
@@ -471,6 +511,10 @@ interface ParsedContact {
 	emails: string[];
 	phones: string[];
 	notes?: string;
+	org?: string;
+	title?: string;
+	birthday?: string;
+	address?: string;
 }
 
 function parseVcard(vcardString: string): ParsedContact | null {
@@ -489,15 +533,35 @@ function parseVcard(vcardString: string): ParsedContact | null {
 		const lastName = nameParts[0] ?? '';
 		const firstName = nameParts[1] ?? '';
 
+		// iCloud writes item-prefixed lines: item1.EMAIL, item2.TEL, etc.
 		const emails = lines
-			.filter((l) => l.startsWith('EMAIL'))
+			.filter((l) => /^(?:item\d+\.)?EMAIL/i.test(l))
 			.map((l) => l.replace(/^[^:]+:/, '').trim());
 
 		const phones = lines
-			.filter((l) => l.startsWith('TEL'))
+			.filter((l) => /^(?:item\d+\.)?TEL/i.test(l))
 			.map((l) => l.replace(/^[^:]+:/, '').trim());
 
 		const notes = getValue('NOTE');
+		const org = getValue('ORG') ?? undefined;
+		const title = getValue('TITLE') ?? undefined;
+		const birthday = getValue('BDAY') ?? undefined;
+
+		// ADR format: ;type=...:poBox;ext;street;city;region;postal;country — iCloud may prefix with item{N}.
+		const adrLine = lines.find((l) => /^(?:item\d+\.)?ADR/i.test(l));
+		let address: string | undefined;
+		if (adrLine) {
+			const adrValue = adrLine.replace(/^[^:]+:/, '').trim();
+			const parts = adrValue.split(';');
+			// parts: [poBox, ext, street, city, region, postal, country]
+			const street = parts[2]?.trim();
+			const city = parts[3]?.trim();
+			const postal = parts[5]?.trim();
+			const country = parts[6]?.trim();
+			address = [street, postal && city ? `${postal} ${city}` : city, country]
+				.filter(Boolean)
+				.join(', ') || undefined;
+		}
 
 		return {
 			uid,
@@ -507,6 +571,10 @@ function parseVcard(vcardString: string): ParsedContact | null {
 			emails,
 			phones,
 			notes,
+			org,
+			title,
+			birthday,
+			address,
 		};
 	} catch {
 		return null;

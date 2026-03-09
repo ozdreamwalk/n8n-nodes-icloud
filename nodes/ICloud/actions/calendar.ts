@@ -27,6 +27,7 @@ export async function handleCalendarOperation(
 	switch (operation) {
 		case 'getCalendars': {
 			const calendars = await getCalendars(creds);
+			// Strip internal `url` field — expose calendarId, displayName, description, color
 			const output = calendars.map(({ url: _url, ...rest }) => rest);
 			return this.helpers.returnJsonArray(output as unknown as IDataObject[]);
 		}
@@ -72,6 +73,8 @@ export async function handleCalendarOperation(
 			return this.helpers.returnJsonArray([
 				{
 					success: true,
+					uid: result.uid,
+					url: result.url,
 					etag: result.etag,
 					summary,
 					start,
@@ -81,7 +84,8 @@ export async function handleCalendarOperation(
 		}
 
 		case 'updateEvent': {
-			const eventUrl = this.getNodeParameter('eventUrl', i) as string;
+			const calendarUrl = this.getNodeParameter('calendarUrl', i) as string;
+			const uid = this.getNodeParameter('uid', i) as string;
 			const updateFields = this.getNodeParameter('updateFields', i, {}) as {
 				summary?: string;
 				start?: string;
@@ -100,24 +104,27 @@ export async function handleCalendarOperation(
 				);
 			}
 
-			await updateEvent(creds, eventUrl, updateFields);
+			await updateEvent(creds, calendarUrl, uid, updateFields);
 
 			return this.helpers.returnJsonArray([
 				{
 					success: true,
+					uid,
 					updated: updateFields,
 				},
 			]);
 		}
 
 		case 'deleteEvent': {
-			const eventUrl = this.getNodeParameter('eventUrl', i) as string;
+			const calendarUrl = this.getNodeParameter('calendarUrl', i) as string;
+			const uid = this.getNodeParameter('uid', i) as string;
 
-			await deleteEvent(creds, eventUrl);
+			await deleteEvent(creds, calendarUrl, uid);
 
 			return this.helpers.returnJsonArray([
 				{
 					success: true,
+					uid,
 					deleted: true,
 				},
 			]);

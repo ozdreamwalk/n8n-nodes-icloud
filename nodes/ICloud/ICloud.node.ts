@@ -41,7 +41,7 @@ export class ICloud implements INodeType {
 		properties: [
 			// ─── Version Notice ────────────────────────────────────────────────────────
 			{
-				displayName: 'iCloud Node v2.0.1',
+				displayName: 'iCloud Node v2.0.6',
 				name: 'versionNotice',
 				type: 'notice',
 				default: '',
@@ -111,13 +111,34 @@ export class ICloud implements INodeType {
 				];
 			},
 
+			async getTimezones(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const tzList: string[] = (Intl as any).supportedValuesOf?.('timeZone') ?? [];
+				return tzList.map((tz) => ({ name: tz, value: tz }));
+			},
+
 			async getMailboxOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const credentials = await this.getCredentials('iCloudCredentials') as {
-					appleId: string;
-					password: string;
-				};
-				const mailboxes = await listMailboxes({ appleId: credentials.appleId, password: credentials.password });
-				return mailboxes.map((m) => ({ name: m, value: m }));
+				// Default iCloud mailbox names — used as fallback when IMAP connection fails
+				// (iCloud IMAP requires @icloud.com address; CalDAV may use a different Apple ID)
+				const defaultMailboxes: INodePropertyOptions[] = [
+					{ name: 'INBOX', value: 'INBOX' },
+					{ name: 'Sent Messages', value: 'Sent Messages' },
+					{ name: 'Drafts', value: 'Drafts' },
+					{ name: 'Deleted Messages', value: 'Deleted Messages' },
+					{ name: 'Junk', value: 'Junk' },
+					{ name: 'Archive', value: 'Archive' },
+				];
+				try {
+					const credentials = await this.getCredentials('iCloudCredentials') as {
+						appleId: string;
+						password: string;
+					};
+					const mailboxes = await listMailboxes({ appleId: credentials.appleId, password: credentials.password });
+					return mailboxes.map((m) => ({ name: m, value: m }));
+				} catch {
+					// IMAP credentials may differ from CalDAV — return standard iCloud mailboxes
+					return defaultMailboxes;
+				}
 			},
 		},
 	};

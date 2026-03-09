@@ -3,6 +3,7 @@ import { ImapFlow } from 'imapflow';
 export interface ImapCredentials {
 	appleId: string;
 	password: string;
+	mailAddress?: string;
 }
 
 export interface EmailMessage {
@@ -37,7 +38,7 @@ function createImapClient(credentials: ImapCredentials): ImapFlow {
 		port: ICLOUD_IMAP_PORT,
 		secure: true,
 		auth: {
-			user: credentials.appleId,
+			user: credentials.mailAddress || credentials.appleId,
 			pass: credentials.password,
 		},
 		logger: false,
@@ -58,8 +59,13 @@ export async function getEmails(
 	} = options;
 
 	const client = createImapClient(credentials);
-	await client.connect();
-
+	try {
+		await client.connect();
+	} catch (error) {
+		throw new Error(
+			`iCloud IMAP authentication failed: ${(error as Error).message}. Use an app-specific password (https://appleid.apple.com) and your full iCloud email (e.g. name@icloud.com).`,
+		);
+	}
 	try {
 		await client.mailboxOpen(mailbox);
 
@@ -122,8 +128,12 @@ export async function getEmails(
 		}
 
 		return messages;
+	} catch (error) {
+		throw new Error(
+			`iCloud IMAP error: ${(error as Error).message}. Check the mailbox name — common iCloud names: INBOX, "Sent Messages", Drafts, "Deleted Messages", Junk.`,
+		);
 	} finally {
-		await client.logout();
+		if (client.authenticated) await client.logout().catch(() => {});
 	}
 }
 
@@ -133,8 +143,13 @@ export async function getEmailById(
 	mailbox = 'INBOX',
 ): Promise<EmailMessage | null> {
 	const client = createImapClient(credentials);
-	await client.connect();
-
+	try {
+		await client.connect();
+	} catch (error) {
+		throw new Error(
+			`iCloud IMAP authentication failed: ${(error as Error).message}. Use an app-specific password and your full iCloud email (e.g. name@icloud.com).`,
+		);
+	}
 	try {
 		await client.mailboxOpen(mailbox);
 
@@ -176,8 +191,12 @@ export async function getEmailById(
 		}
 
 		return found;
+	} catch (error) {
+		throw new Error(
+			`iCloud IMAP error: ${(error as Error).message}. Check the mailbox name — common iCloud names: INBOX, "Sent Messages", Drafts, "Deleted Messages", Junk.`,
+		);
 	} finally {
-		await client.logout();
+		if (client.authenticated) await client.logout().catch(() => {});
 	}
 }
 
@@ -188,13 +207,18 @@ export async function moveEmail(
 	toMailbox: string,
 ): Promise<void> {
 	const client = createImapClient(credentials);
-	await client.connect();
-
+	try {
+		await client.connect();
+	} catch (error) {
+		throw new Error(`iCloud IMAP authentication failed: ${(error as Error).message}.`);
+	}
 	try {
 		await client.mailboxOpen(fromMailbox);
 		await client.messageMove(String(uid), toMailbox, { uid: true });
+	} catch (error) {
+		throw new Error(`iCloud IMAP error: ${(error as Error).message}. Check mailbox names.`);
 	} finally {
-		await client.logout();
+		if (client.authenticated) await client.logout().catch(() => {});
 	}
 }
 
@@ -204,24 +228,30 @@ export async function deleteEmail(
 	mailbox = 'INBOX',
 ): Promise<void> {
 	const client = createImapClient(credentials);
-	await client.connect();
-
+	try {
+		await client.connect();
+	} catch (error) {
+		throw new Error(`iCloud IMAP authentication failed: ${(error as Error).message}.`);
+	}
 	try {
 		await client.mailboxOpen(mailbox);
 		await client.messageDelete(String(uid), { uid: true });
+	} catch (error) {
+		throw new Error(`iCloud IMAP error: ${(error as Error).message}. Check the mailbox name.`);
 	} finally {
-		await client.logout();
+		if (client.authenticated) await client.logout().catch(() => {});
 	}
 }
 
 export async function listMailboxes(credentials: ImapCredentials): Promise<string[]> {
 	const client = createImapClient(credentials);
-	await client.connect();
-
 	try {
+		await client.connect();
 		const mailboxes = await client.list();
 		return mailboxes.map((m) => m.path);
+	} catch (error) {
+		throw new Error(`IMAP connection failed: ${(error as Error).message}`);
 	} finally {
-		await client.logout();
+		if (client.authenticated) await client.logout().catch(() => {});
 	}
 }

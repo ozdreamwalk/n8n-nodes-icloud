@@ -14,14 +14,16 @@ export async function handleMailOperation(
 	operation: string,
 	i: number,
 ): Promise<INodeExecutionData[]> {
-	const credentials = await this.getCredentials('iCloudCredentials') as ImapCredentials & {
+	const credentials = await this.getCredentials('iCloudCredentials') as {
 		appleId: string;
 		password: string;
+		mailAddress?: string;
 	};
 
 	const creds: ImapCredentials = {
 		appleId: credentials.appleId,
 		password: credentials.password,
+		mailAddress: credentials.mailAddress || undefined,
 	};
 
 	switch (operation) {
@@ -35,7 +37,7 @@ export async function handleMailOperation(
 				isHtml?: boolean;
 			};
 
-			const smtpCreds = { appleId: credentials.appleId, password: credentials.password };
+			const smtpCreds = { appleId: credentials.appleId, password: credentials.password, mailAddress: credentials.mailAddress || undefined };
 			const result = await sendMail(smtpCreds, {
 				to,
 				subject,

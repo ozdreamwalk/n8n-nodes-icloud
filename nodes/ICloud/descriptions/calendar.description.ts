@@ -119,7 +119,9 @@ export const calendarFields: INodeProperties[] = [
 			show: { resource: ['calendar'], operation: ['createEvent'] },
 		},
 		default: '',
-		description: 'Start date and time of the event (ISO 8601 format)',
+		placeholder: '2026-03-06T15:00:00Z',
+		description:
+			'Start date and time. Without a Timezone field, this must be UTC (use Z suffix, e.g. 2026-03-06T15:00:00Z). For local wall-clock time, set the Timezone field.',
 	},
 	{
 		displayName: 'End',
@@ -130,7 +132,9 @@ export const calendarFields: INodeProperties[] = [
 			show: { resource: ['calendar'], operation: ['createEvent'] },
 		},
 		default: '',
-		description: 'End date and time of the event (ISO 8601 format)',
+		placeholder: '2026-03-06T16:00:00Z',
+		description:
+			'End date and time. Without a Timezone field, this must be UTC (use Z suffix, e.g. 2026-03-06T16:00:00Z). For local wall-clock time, set the Timezone field.',
 	},
 	{
 		displayName: 'Additional Fields',
@@ -168,28 +172,40 @@ export const calendarFields: INodeProperties[] = [
 			{
 				displayName: 'Timezone',
 				name: 'timezone',
-				type: 'string',
+				type: 'options',
+				typeOptions: { loadOptionsMethod: 'getTimezones' },
 				default: '',
-				placeholder: 'Europe/Berlin',
-				description:
-					'IANA timezone for the event (e.g. Europe/Berlin, America/New_York). Leave empty to use UTC.',
+				description: 'IANA timezone for the event. Leave empty to use UTC.',
 			},
 		],
 	},
 
-	// ─── Update Event ─────────────────────────────────────────────────────────────
+	// ─── Update / Delete Event ────────────────────────────────────────────────────
 	{
-		displayName: 'Event URL',
-		name: 'eventUrl',
+		displayName: 'Calendar',
+		name: 'calendarUrl',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getCalendarOptions',
+		},
+		required: true,
+		displayOptions: {
+			show: { resource: ['calendar'], operation: ['updateEvent', 'deleteEvent'] },
+		},
+		default: '',
+		description: 'Calendar that contains the event',
+	},
+	{
+		displayName: 'Event UID',
+		name: 'uid',
 		type: 'string',
 		required: true,
 		displayOptions: {
 			show: { resource: ['calendar'], operation: ['updateEvent', 'deleteEvent'] },
 		},
 		default: '',
-		placeholder: 'https://p01-caldav.icloud.com/.../uuid.ics',
-		description:
-			'Full URL of the event to update or delete. Returned by "Get Events" or "Create Event" operations.',
+		placeholder: 'lm3abc12-def4-...',
+		description: 'UID of the event to update or delete. Returned as the "uid" field by "Get Events" or "Create Event".',
 	},
 	{
 		displayName: 'Fields to Update',
@@ -247,11 +263,10 @@ export const calendarFields: INodeProperties[] = [
 			{
 				displayName: 'Timezone',
 				name: 'timezone',
-				type: 'string',
+				type: 'options',
+				typeOptions: { loadOptionsMethod: 'getTimezones' },
 				default: '',
-				placeholder: 'Europe/Berlin',
-				description:
-					'IANA timezone for the event (e.g. Europe/Berlin, America/New_York). Leave empty to keep existing timezone.',
+				description: 'IANA timezone for the event. Leave empty to keep existing timezone.',
 			},
 		],
 	},

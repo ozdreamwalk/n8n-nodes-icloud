@@ -103,7 +103,7 @@ Retrieves emails from an IMAP mailbox (`imap.mail.me.com:993`, SSL).
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| Mailbox | string | INBOX | Folder name |
+| Mailbox | string | INBOX | Folder name. Common iCloud mailboxes: `INBOX`, `Sent Messages`, `Drafts`, `Deleted Messages`, `Junk` |
 | Limit | number | 10 | Max emails to return (newest first) |
 | From | string | — | Filter by sender |
 | Subject Contains | string | — | Filter by subject |
@@ -139,19 +139,22 @@ Retrieves events from one or all calendars, optionally filtered by date range.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| Calendar URL | string | Yes | Target calendar URL (from Get Calendars) |
+| Calendar | options | Yes | Target calendar (dropdown from Get Calendars) |
 | Summary | string | Yes | Event title |
 | Start | dateTime | Yes | Start date/time |
-| End | dateTime | Yes | End date/time |
+| End | dateTime | Yes | End date/time (must be after Start) |
 | Description | string | No | Event notes |
 | Location | string | No | Event location |
 | All Day Event | boolean | No | Full-day event flag |
+| Timezone | string | No | IANA timezone (e.g. `Europe/Berlin`). Leave empty for UTC. |
+
+Returns: `{ success, uid, url, etag, summary, start, end }`
 
 #### Update Event
-Updates fields on an existing event by its URL.
+Updates fields on an existing event. Requires **Calendar** (dropdown) + **Event UID** (returned as `uid` by Get Events or Create Event).
 
 #### Delete Event
-Deletes an event by its URL.
+Deletes an event. Requires **Calendar** (dropdown) + **Event UID**.
 
 ---
 
@@ -171,10 +174,10 @@ Returns all contacts, with optional search filtering by name or email.
 | Notes | string | No | Additional notes |
 
 #### Update Contact
-Updates fields on an existing contact by its URL.
+Updates fields on an existing contact. Requires **Contact UID** (returned as `uid` by Get Contacts or Create Contact).
 
 #### Delete Contact
-Deletes a contact by its URL.
+Deletes a contact. Requires **Contact UID**.
 
 ---
 

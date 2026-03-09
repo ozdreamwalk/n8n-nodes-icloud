@@ -71,7 +71,7 @@ export async function handleContactsOperation(
 		}
 
 		case 'updateContact': {
-			const contactUrl = this.getNodeParameter('contactUrl', i) as string;
+			const uid = this.getNodeParameter('uid', i) as string;
 			const updateFields = this.getNodeParameter('updateFields', i, {}) as {
 				firstName?: string;
 				lastName?: string;
@@ -88,24 +88,26 @@ export async function handleContactsOperation(
 				);
 			}
 
-			await updateContact(creds, contactUrl, updateFields);
+			await updateContact(creds, uid, updateFields);
 
 			return this.helpers.returnJsonArray([
 				{
 					success: true,
+					uid,
 					updated: updateFields,
 				},
 			]);
 		}
 
 		case 'deleteContact': {
-			const contactUrl = this.getNodeParameter('contactUrl', i) as string;
+			const uid = this.getNodeParameter('uid', i) as string;
 
-			await deleteContact(creds, contactUrl);
+			await deleteContact(creds, uid);
 
 			return this.helpers.returnJsonArray([
 				{
 					success: true,
+					uid,
 					deleted: true,
 				},
 			]);
