@@ -151,6 +151,18 @@ Retrieves events from one or all calendars, optionally filtered by date range.
 | Calendar URL | string | Optional — leave empty for all calendars |
 | Start | dateTime | Optional filter: events after this date |
 | End | dateTime | Optional filter: events before this date |
+| Include Raw iCalendar Data | boolean | Optional — include raw properties, components, DAV metadata, and the full ICS document (default: false) |
+
+Each event includes the common fields (`uid`, `summary`, `description`, `location`, `start`, `end`, `allDay`, `timezone`, `status`, and `availability`) plus all available scheduling data:
+
+- URL, organizer, attendees and their participation state
+- Recurrence rules, additional dates, excluded dates, and recurrence IDs
+- Alarms, attachments, categories, classification, priority, sequence, timestamps, geo data, comments, contacts, resources, relationships, and request status
+- Compact calendar metadata (`calendarId` and `displayName`)
+
+Empty optional arrays are omitted from the default response. Enable **Include Raw iCalendar Data** to additionally receive DAV metadata (`dav`), every VEVENT property and nested component (`properties` and `components`), Apple or vendor extensions (`xProperties`), the calendar URL, and the complete source document (`rawIcal`). The raw document can be several kilobytes larger because Apple includes full timezone definitions.
+
+Calendar objects containing a recurring-event master and one or more modified occurrences return one item per `VEVENT`. Modified occurrences include `recurrence.recurrenceId`.
 
 #### Create Event
 
@@ -165,10 +177,16 @@ Retrieves events from one or all calendars, optionally filtered by date range.
 | All Day Event | boolean | No | Full-day event flag |
 | Timezone | string | No | IANA timezone (e.g. `Europe/Berlin`). Leave empty for UTC. |
 
+The **Additional Fields** collection also supports URL, status, availability, classification, priority, sequence, organizer, attendees, recurrence rules and exceptions, categories, geo position, attachments, alarms, comments, contacts, resources, relationships, request status, and arbitrary iCalendar properties or nested components. Complex and repeatable values use JSON fields so all RFC parameters and Apple-specific extensions can be represented.
+
 Returns: `{ success, uid, url, etag, summary, start, end }`
 
 #### Update Event
 Updates fields on an existing event. Requires **Calendar** (dropdown) + **Event UID** (returned as `uid` by Get Events or Create Event).
+
+Update exposes the same extended fields as Create Event. It patches the existing `VEVENT` instead of rebuilding a minimal event, preserving all properties and components that were not explicitly changed. `DTSTAMP` and `LAST-MODIFIED` are refreshed, and `SEQUENCE` is incremented automatically unless supplied explicitly.
+
+> Adding `ORGANIZER` and `ATTENDEE` properties stores scheduling information in the event. Whether iCloud sends invitations is controlled by its CalDAV scheduling service and is not guaranteed by writing those properties alone.
 
 #### Delete Event
 Deletes an event. Requires **Calendar** (dropdown) + **Event UID**.

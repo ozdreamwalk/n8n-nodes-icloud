@@ -2,6 +2,21 @@
 
 All notable changes to `n8n-nodes-icloud` will be documented here.
 
+## [Unreleased]
+
+### Added
+
+- **Complete calendar event output** — Get Events now returns populated organizer, attendee and participation state, recurrence data and exceptions, URL, alarms, attachments, categories, classification, priority, sequence, timestamps, geo data, comments, contacts, resources, relationships, and request status fields.
+- **Lossless iCalendar fallback** — When raw data is requested, every direct VEVENT property and nested component is returned in generic `properties` and `components` arrays. Apple and vendor extensions are also exposed through `xProperties`, while `rawIcal` retains the complete source document.
+- **Extended event creation and editing** — Create Event and Update Event now accept all structured fields above plus arbitrary iCalendar properties and components through JSON fields.
+- **Optional raw event data** — Get Events has an `Include Raw iCalendar Data` switch for returning generic properties, nested components, DAV metadata, vendor extensions, and the complete ICS source.
+
+### Changed
+
+- **Non-destructive event updates** — Updates now patch the matching VEVENT inside the existing calendar object. Unchanged attendees, recurrence rules, alarms, attachments, timezone definitions, and vendor-specific data are preserved. Event timestamps are refreshed and sequence numbers increment automatically.
+- **Recurring event objects** — Calendar objects containing multiple VEVENT components now return each master or modified occurrence separately.
+- **Compact Get Events response** — Empty optional arrays and duplicate raw representations are omitted by default. Structured organizer, attendee, recurrence, alarm, attachment, and other populated fields remain available.
+
 ## [2.0.8] - 2026-03-09
 
 ### Added

@@ -7,7 +7,27 @@ import {
 	updateEvent,
 	deleteEvent,
 } from '../helpers/dav.helper';
-import type { DavCredentials } from '../helpers/dav.helper';
+import type { CreateEventOptions, DavCredentials } from '../helpers/dav.helper';
+
+type WritableEventFields = Partial<Omit<CreateEventOptions, 'calendarUrl' | 'summary' | 'start' | 'end'>>;
+
+const jsonEventFields = [
+	'organizer', 'attendees', 'recurrenceRules', 'recurrenceDates', 'excludedDates', 'alarms',
+	'attachments', 'categories', 'geo', 'comments', 'contacts', 'resources', 'relatedTo',
+	'requestStatus', 'customProperties', 'customComponents',
+] as const;
+
+function normalizeEventFields(value: Record<string, unknown>): WritableEventFields {
+	const normalized = { ...value };
+	if (normalized.timezone === '') delete normalized.timezone;
+	for (const name of jsonEventFields) {
+		if (typeof normalized[name] === 'string') {
+			const raw = normalized[name] as string;
+			normalized[name] = raw.trim() ? JSON.parse(raw) as unknown : undefined;
+		}
+	}
+	return normalized as WritableEventFields;
+}
 
 export async function handleCalendarOperation(
 	this: IExecuteFunctions,
@@ -36,12 +56,14 @@ export async function handleCalendarOperation(
 			const calendarUrl = this.getNodeParameter('calendarUrl', i, '') as string;
 			const start = this.getNodeParameter('start', i, '') as string;
 			const end = this.getNodeParameter('end', i, '') as string;
+			const includeRawData = this.getNodeParameter('includeRawData', i, false) as boolean;
 
 			const events = await getEvents(
 				creds,
 				calendarUrl || undefined,
 				start || undefined,
 				end || undefined,
+				includeRawData,
 			);
 
 			return this.helpers.returnJsonArray(events as unknown as IDataObject[]);
@@ -52,21 +74,16 @@ export async function handleCalendarOperation(
 			const summary = this.getNodeParameter('summary', i) as string;
 			const start = this.getNodeParameter('start', i) as string;
 			const end = this.getNodeParameter('end', i) as string;
-			const additionalFields = this.getNodeParameter('additionalFields', i, {}) as {
-				description?: string;
-				location?: string;
-				allDay?: boolean;
-				timezone?: string;
-			};
+			const additionalFields = normalizeEventFields(
+				this.getNodeParameter('additionalFields', i, {}) as Record<string, unknown>,
+			);
 
 			const result = await createEvent(creds, {
+				...additionalFields,
 				calendarUrl,
 				summary,
 				start,
 				end,
-				description: additionalFields.description,
-				location: additionalFields.location,
-				allDay: additionalFields.allDay,
 				timezone: additionalFields.timezone || undefined,
 			});
 
@@ -86,15 +103,9 @@ export async function handleCalendarOperation(
 		case 'updateEvent': {
 			const calendarUrl = this.getNodeParameter('calendarUrl', i) as string;
 			const uid = this.getNodeParameter('uid', i) as string;
-			const updateFields = this.getNodeParameter('updateFields', i, {}) as {
-				summary?: string;
-				start?: string;
-				end?: string;
-				description?: string;
-				location?: string;
-				allDay?: boolean;
-				timezone?: string;
-			};
+			const updateFields = normalizeEventFields(
+				this.getNodeParameter('updateFields', i, {}) as Record<string, unknown>,
+			) as Partial<Omit<CreateEventOptions, 'calendarUrl'>>;
 
 			if (Object.keys(updateFields).length === 0) {
 				throw new NodeOperationError(
