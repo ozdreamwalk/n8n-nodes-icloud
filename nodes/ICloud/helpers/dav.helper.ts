@@ -127,17 +127,23 @@ export async function getEvents(
 	}
 
 	const allEvents: CalendarEvent[] = [];
+	const shouldExpand = Boolean(start && end);
 
 	for (const calendar of calendars) {
 		const objects: DAVCalendarObject[] = await client.fetchCalendarObjects({
 			calendar,
 			timeRange: start && end ? { start, end } : undefined,
+			// Ask the CalDAV server to replace recurring master events with the
+			// concrete occurrences inside the requested time range.
+			expand: shouldExpand,
 		});
 
 		for (const obj of objects) {
-			const parsed = parseIcal(obj.data as string);
-			if (parsed) {
-				allEvents.push(parsed);
+			if (shouldExpand) {
+				allEvents.push(...parseIcalEvents(obj.data as string));
+			} else {
+				const parsed = parseIcal(obj.data as string);
+				if (parsed) allEvents.push(parsed);
 			}
 		}
 	}
@@ -384,9 +390,28 @@ interface ParsedEvent {
 	availability?: 'free' | 'busy';
 }
 
+export function parseIcalEvents(icalString: string): ParsedEvent[] {
+	// RFC 5545 line folding may occur before component boundaries or properties.
+	const unfolded = icalString.replace(/\r?\n[ \t]/g, '');
+	const eventBlocks = Array.from(
+		unfolded.matchAll(/BEGIN:VEVENT\r?\n[\s\S]*?\r?\nEND:VEVENT/g),
+		(match) => match[0],
+	);
+
+	// A CalDAV expand response contains one VEVENT per occurrence, often several
+	// inside the same VCALENDAR resource. Parse every occurrence independently.
+	return (eventBlocks.length > 0 ? eventBlocks : [unfolded])
+		.map(parseIcalComponent)
+		.filter((event): event is ParsedEvent => event !== null);
+}
+
 function parseIcal(icalString: string): ParsedEvent | null {
+	return parseIcalEvents(icalString)[0] ?? null;
+}
+
+function parseIcalComponent(icalString: string): ParsedEvent | null {
 	try {
-		const lines = icalString.replace(/\r\n\s/g, '').split(/\r\n|\n/);
+		const lines = icalString.split(/\r\n|\n/);
 
 		const getValue = (key: string): string | undefined =>
 			lines.find((l) => l.startsWith(key + ':') || l.startsWith(key + ';'))
